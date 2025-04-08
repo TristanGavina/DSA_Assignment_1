@@ -124,9 +124,10 @@ public class Phone implements Runnable {
         List<Phone> infectedPhones = null;
         //synchronize to avoid modifying same list (prevents race conditions)
         synchronized (phones) {
-            //
             for (Phone phone : phones) {
-                if (!phone.isInfected
+                boolean immune = System.currentTimeMillis() < phone.endImmunity;
+                
+                if (!phone.isInfected && !immune
                         && Math.hypot(this.x - phone.x, this.y - phone.y) <= 20) {
                     if (infectedPhones == null) {
                         infectedPhones = new ArrayList<>(); //make new arraylist for infected phones
