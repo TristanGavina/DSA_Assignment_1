@@ -5,6 +5,9 @@
  */
 package Question_2;
 
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
 /**
  *
  * @author xhu
@@ -28,8 +31,8 @@ public class RepairShop {
             phone.endImmunity = System.currentTimeMillis() + phone.immuneDuration;
             
             repairing = false;
-        } catch (InterruptedException e){
+        } catch (InterruptedException ex){
+            Logger.getLogger(Panel.class.getName()).log(Level.SEVERE, null, ex);
         }
-        
     }
 }
