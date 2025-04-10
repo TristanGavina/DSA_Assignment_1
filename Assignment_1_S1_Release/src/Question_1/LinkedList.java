@@ -148,7 +148,8 @@ public class LinkedList <E extends Comparable<E>>{
         if(currentNode == null){
             return newNode; 
         }
-        if(newNode.data.compareTo(currentNode.data) <= 0){ //make sure newNode is placed first before currentNode
+         //make sure newNode is placed first before currentNode
+        if(newNode.data.compareTo(currentNode.data) <= 0){
             newNode.next = currentNode; 
             return newNode;
         }
