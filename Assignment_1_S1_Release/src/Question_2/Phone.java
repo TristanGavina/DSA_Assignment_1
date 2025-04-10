@@ -1,7 +1,7 @@
 package Question_2;
 
-import java.util.ArrayList;
-import java.util.List;
+import Question_1.LinkedList;
+import Question_1.Node;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -20,7 +20,7 @@ import java.util.logging.Logger;
  * These 3 synchronize objects prevents race conditions, ensuring a multi-threaded safe code. 
  * Allowing multiple changes and access in the phones lists simultaneously.
  */
-public class Phone implements Runnable {
+public class Phone implements Runnable, Comparable<Phone>{
 
     int x = 0;
     int y = 0;
@@ -36,17 +36,18 @@ public class Phone implements Runnable {
     boolean isRepaired = false;
     int phoneLife = 500;
 
-    List<Phone> phones;
-    RepairShop repairShop;
+    final LinkedList<Phone> phones;
+    final RepairShop repairShop;
 
     static boolean canGoRepair = false;
     static final Object repairLock = new Object(); // used for synchonize lock to avoid multiple repairs
     long immuneDuration = 60000; //phone is immune to infection for 60sec after repair
     long endImmunity = 0;
 
-    public Phone(List<Phone> phones, RepairShop repairShop) {
+    public Phone(LinkedList<Phone> phones, RepairShop repairShop) {
         this.phones = phones;
         this.repairShop = repairShop;
+        //randomized phone movements
         this.x = (int) (Math.random() * 800);
         this.y = (int) (Math.random() * 600);
         this.vx = (int) (Math.random() * 3 + 1);
@@ -79,10 +80,8 @@ public class Phone implements Runnable {
 
                 spreadInfection();
 
-                if (!isRepaired && !moveToRepair) {
-                    if (phoneCanRepair()) {
-                        moveToRepair = true;
-                    }
+                if (!isRepaired && !moveToRepair && phoneCanRepair()) {
+                    moveToRepair = true;
                 }
             }
 
@@ -98,11 +97,18 @@ public class Phone implements Runnable {
         }
 
         //removing from list when phone is dead
-        synchronized (phones) { ////synchronize to avoid modifying/accessing same list
-            phones.remove(this);
+        synchronized (phones) {
+            boolean dead = false;
+            for (int i = 0; i < phones.size; i++) {
+                Phone currentPhone = phones.getData(i);
+                if (currentPhone == this) {
+                    phones.remove(i);
+                    dead = true;
+                    break;
+                }
+            }
         }
     }
-
     public void move() {
         if (x > width || x < 0) {
             vx *= -1;
@@ -121,26 +127,24 @@ public class Phone implements Runnable {
         }
 
         //list of infected phones
-        List<Phone> infectedPhones = null;
+        LinkedList<Phone> infectedPhones = new LinkedList<>();
         //synchronize to avoid modifying same list (prevents race conditions)
         synchronized (phones) {
-            for (Phone phone : phones) {
+            //iterate phones using LinkedList methods
+            for (int i = 0; i < phones.size; i++) {
+                Phone phone = phones.getData(i);
                 boolean immune = System.currentTimeMillis() < phone.endImmunity;
-                
-                if (!phone.isInfected && !immune
-                        && Math.hypot(this.x - phone.x, this.y - phone.y) <= 20) {
-                    if (infectedPhones == null) {
-                        infectedPhones = new ArrayList<>(); //make new arraylist for infected phones
-                    }
+                double distance = Math.hypot(this.x - phone.x, this.y - phone.y);
+                if (!phone.isInfected && !immune &&  distance <= 20) {
                     infectedPhones.add(phone);
                 }
             }
         }
         //infecting phones
-        if (infectedPhones != null) {
-            for (Phone phone : infectedPhones) {
-                phone.isInfected = true;
-            }
+        Node<Phone> current = infectedPhones.getHead();
+        while (current != null) {
+            current.data.isInfected = true;
+            current = current.next;
         }
     }
 
@@ -149,16 +153,16 @@ public class Phone implements Runnable {
         int repairBoxY = height / 2;
         int speed = 2;
 
+        // Move to repair box
         if (x < repairBoxX) {
             x += speed;
-        }
-        if (x > repairBoxX) {
+        } else if (x > repairBoxX) {
             x -= speed;
         }
+
         if (y < repairBoxY) {
             y += speed;
-        }
-        if (y > repairBoxY) {
+        } else if (y > repairBoxY) {
             y -= speed;
         }
 
@@ -176,10 +180,10 @@ public class Phone implements Runnable {
                     canGoRepair = false;  // release the lock after repair
                 }
             } catch (InterruptedException e) {
-                e.printStackTrace();
+                
             }
-        } else {
-            // Move to repair box
+        } 
+        else { // reduncancy just to avoid phones from getting stuck or wandering off 
             if (x < repairBoxX) {
                 x += speed;
             }
@@ -204,6 +208,17 @@ public class Phone implements Runnable {
             }
         }
         return false;
+    }
+
+    @Override
+    public int compareTo(Phone o) {
+        
+        //if addInOrder() method is used from LinkedList class
+        // sort phone by infected state 
+        if(this.isInfected != o.isInfected){
+            return Boolean.compare(this.isInfected, o.isInfected);
+        }
+        return Integer.compare(this.phoneLife, o.phoneLife); // sort phone by life
     }
 
 }
